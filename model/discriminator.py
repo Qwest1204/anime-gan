@@ -10,66 +10,37 @@ class Discriminator(nn.Module):
         super().__init__()
 
         self.layers = nn.Sequential(
-            # (Batch_Size, Channel, Height, Width) -> (Batch_Size, 128, Height, Width)
             nn.Conv2d(3, 64, kernel_size=3, padding=1),
 
-            # (Batch_Size, 128, Height, Width) -> (Batch_Size, 128, Height, Width)
+            ResidualBlock(64, 64),
             ResidualBlock(64, 64),
 
-            # (Batch_Size, 128, Height, Width) -> (Batch_Size, 128, Height, Width)
-            ResidualBlock(64, 64),
-
-            # (Batch_Size, 128, Height, Width) -> (Batch_Size, 128, Height / 2, Width / 2)
             nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=0),
 
-            # (Batch_Size, 128, Height / 2, Width / 2) -> (Batch_Size, 256, Height / 2, Width / 2)
             ResidualBlock(64, 128),
-
-            # (Batch_Size, 256, Height / 2, Width / 2) -> (Batch_Size, 256, Height / 2, Width / 2)
             ResidualBlock(128, 128),
 
-            # (Batch_Size, 256, Height / 2, Width / 2) -> (Batch_Size, 256, Height / 4, Width / 4)
             nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=0),
 
-            # (Batch_Size, 256, Height / 4, Width / 4) -> (Batch_Size, 512, Height / 4, Width / 4)
             ResidualBlock(128, 256),
-
-            # (Batch_Size, 512, Height / 4, Width / 4) -> (Batch_Size, 512, Height / 4, Width / 4)
             ResidualBlock(256, 256),
 
-            # (Batch_Size, 512, Height / 4, Width / 4) -> (Batch_Size, 512, Height / 8, Width / 8)
             nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=0),
 
-            # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
+            ResidualBlock(256, 256),
+            ResidualBlock(256, 256),
             ResidualBlock(256, 256),
 
-            # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
-            ResidualBlock(256, 256),
-
-            # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
-            ResidualBlock(256, 256),
-
-            # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
             AttentionBlock(256,),
 
-            # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
             ResidualBlock(256, 256),
 
-            # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
             nn.GroupNorm(32, 256),
 
-            # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
             nn.SiLU(),
 
-            # Because the padding=1, it means the width and height will increase by 2
-            # Out_Height = In_Height + Padding_Top + Padding_Bottom
-            # Out_Width = In_Width + Padding_Left + Padding_Right
-            # Since padding = 1 means Padding_Top = Padding_Bottom = Padding_Left = Padding_Right = 1,
-            # Since the Out_Width = In_Width + 2 (same for Out_Height), it will compensate for the Kernel size of 3
-            # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 8, Height / 8, Width / 8).
             nn.Conv2d(256, 8, kernel_size=3, padding=1),
 
-            # (Batch_Size, 8, Height / 8, Width / 8) -> (Batch_Size, 8, Height / 8, Width / 8)
             nn.Conv2d(8, 1, kernel_size=1, padding=0),
         )
 
