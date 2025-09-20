@@ -11,10 +11,10 @@ class Generator(nn.Module):
 
         self.layers = nn.Sequential(
             # (Batch_Size, 4, Height / 8, Width / 8) -> (Batch_Size, 4, Height / 8, Width / 8)
-            nn.Conv2d(3, 3, kernel_size=1, padding=0),
+            #nn.Conv2d(3, 3, kernel_size=1, padding=0),
 
             # (Batch_Size, 4, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
-            nn.Conv2d(3, 256, kernel_size=3, padding=1),
+            #nn.Conv2d(3, 256, kernel_size=3, padding=1),
 
             # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
             ResidualBlock(256, 256),
@@ -36,10 +36,10 @@ class Generator(nn.Module):
 
             # Repeats the rows and columns of the data by scale_factor (like when you resize an image by doubling its size).
             # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 4, Width / 4)
-            nn.Upsample(scale_factor=2),
+            #nn.Upsample(scale_factor=2),
 
             # (Batch_Size, 512, Height / 4, Width / 4) -> (Batch_Size, 512, Height / 4, Width / 4)
-            nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            #nn.Conv2d(256, 256, kernel_size=3, padding=1),
 
             # (Batch_Size, 512, Height / 4, Width / 4) -> (Batch_Size, 512, Height / 4, Width / 4)
             ResidualBlock(256, 256),
@@ -54,7 +54,7 @@ class Generator(nn.Module):
             nn.Upsample(scale_factor=2),
 
             # (Batch_Size, 512, Height / 2, Width / 2) -> (Batch_Size, 512, Height / 2, Width / 2)
-            nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            #nn.Conv2d(256, 256, kernel_size=3, padding=1),
 
             # (Batch_Size, 512, Height / 2, Width / 2) -> (Batch_Size, 256, Height / 2, Width / 2)
             ResidualBlock(256, 128),
@@ -69,7 +69,7 @@ class Generator(nn.Module):
             nn.Upsample(scale_factor=2),
 
             # (Batch_Size, 256, Height, Width) -> (Batch_Size, 256, Height, Width)
-            nn.Conv2d(128, 128, kernel_size=3, padding=1),
+            #nn.Conv2d(128, 128, kernel_size=3, padding=1),
 
             # (Batch_Size, 256, Height, Width) -> (Batch_Size, 128, Height, Width)
             ResidualBlock(128, 64),
@@ -87,7 +87,8 @@ class Generator(nn.Module):
             nn.SiLU(),
 
             # (Batch_Size, 128, Height, Width) -> (Batch_Size, 3, Height, Width)
-            nn.Conv2d(64, 3, kernel_size=3, padding=1),
+            #nn.Conv2d(64, 3, kernel_size=3, padding=1),
+            ResidualBlock(64, 3),
         )
 
     def forward(self, x):
