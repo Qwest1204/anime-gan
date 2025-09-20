@@ -23,10 +23,10 @@ class Generator(nn.Module):
             AttentionBlock(256),
 
             # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
-            #ResidualBlock(256, 256),
+            ResidualBlock(256, 256),
 
             # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
-            #ResidualBlock(256, 256),
+            ResidualBlock(256, 256),
 
             # (Batch_Size, 512, Height / 8, Width / 8) -> (Batch_Size, 512, Height / 8, Width / 8)
             ResidualBlock(256, 256),
@@ -42,10 +42,10 @@ class Generator(nn.Module):
             nn.Conv2d(256, 256, kernel_size=3, padding=1),
 
             # (Batch_Size, 512, Height / 4, Width / 4) -> (Batch_Size, 512, Height / 4, Width / 4)
-            #ResidualBlock(256, 256),
+            ResidualBlock(256, 256),
 
             # (Batch_Size, 512, Height / 4, Width / 4) -> (Batch_Size, 512, Height / 4, Width / 4)
-            #ResidualBlock(256, 256),
+            ResidualBlock(256, 256),
 
             # (Batch_Size, 512, Height / 4, Width / 4) -> (Batch_Size, 512, Height / 4, Width / 4)
             ResidualBlock(256, 256),
@@ -57,10 +57,10 @@ class Generator(nn.Module):
             nn.Conv2d(256, 256, kernel_size=3, padding=1),
 
             # (Batch_Size, 512, Height / 2, Width / 2) -> (Batch_Size, 256, Height / 2, Width / 2)
-            #ResidualBlock(256, 128),
+            ResidualBlock(256, 128),
 
             # (Batch_Size, 256, Height / 2, Width / 2) -> (Batch_Size, 256, Height / 2, Width / 2)
-            #ResidualBlock(128, 128),
+            ResidualBlock(128, 128),
 
             # (Batch_Size, 256, Height / 2, Width / 2) -> (Batch_Size, 256, Height / 2, Width / 2)
             ResidualBlock(128, 128),
@@ -72,10 +72,10 @@ class Generator(nn.Module):
             nn.Conv2d(128, 128, kernel_size=3, padding=1),
 
             # (Batch_Size, 256, Height, Width) -> (Batch_Size, 128, Height, Width)
-            #ResidualBlock(128, 64),
+            ResidualBlock(128, 64),
 
             # (Batch_Size, 128, Height, Width) -> (Batch_Size, 128, Height, Width)
-            #ResidualBlock(64, 64),
+            ResidualBlock(64, 64),
 
             # (Batch_Size, 128, Height, Width) -> (Batch_Size, 128, Height, Width)
             ResidualBlock(64, 64),
