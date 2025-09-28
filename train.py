@@ -17,7 +17,8 @@ transforms = A.Compose([
     A.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5], max_pixel_value=255),
     ToTensorV2(),
 ],
-additional_targets={'image0':'image'})
+    additional_targets={'image0': 'image'})
+
 
 def save_checkpoint(model, optimizer, filename="my_checkpoint.pth.tar"):
     print("=> Saving checkpoint")
@@ -39,83 +40,105 @@ def load_checkpoint(checkpoint_file, model, optimizer, lr):
     for param_group in optimizer.param_groups:
         param_group["lr"] = lr
 
+
 def train_fn(
-    disc_H, disc_Z, gen_Z, gen_H, loader, opt_disc, opt_gen, l1, mse, d_scaler, g_scaler
+        disc_H, disc_Z, gen_Z, gen_H, loader, opt_disc, opt_gen, l1, mse, d_scaler, g_scaler
 ):
+    # Initialize accumulators for discriminator outputs (for logging)
     H_reals = 0
     H_fakes = 0
+    Z_reals = 0
+    Z_fakes = 0
+
+    # Progress bar for the dataloader
     loop = tqdm(loader, leave=True)
 
-    for idx, (anime, image) in enumerate(loop):
-        anime = anime.to('cuda')
-        image = image.to('cuda')
+    for idx, (zebra, horse) in enumerate(loop):
+        zebra = zebra.to('cuda')
+        horse = horse.to('cuda')
 
-        # Train Discriminators H and Z
+        # Train Discriminators for Horse (H) and Zebra (Z) domains
         with torch.cuda.amp.autocast():
-            fake_image = gen_H(anime)
-            D_H_real = disc_H(image)
-            D_H_fake = disc_H(fake_image.detach())
+            # Generate fakes
+            fake_horse = gen_H(zebra)
+            fake_zebra = gen_Z(horse)
+
+            # Discriminator H (for horse domain)
+            D_H_real = disc_H(horse)
+            D_H_fake = disc_H(fake_horse.detach())
             H_reals += D_H_real.mean().item()
             H_fakes += D_H_fake.mean().item()
             D_H_real_loss = mse(D_H_real, torch.ones_like(D_H_real))
             D_H_fake_loss = mse(D_H_fake, torch.zeros_like(D_H_fake))
             D_H_loss = D_H_real_loss + D_H_fake_loss
 
-            fake_amime = gen_Z(anime)
-            D_Z_real = disc_Z(image)
-            D_Z_fake = disc_Z(fake_amime.detach())
+            # Discriminator Z (for zebra domain)
+            D_Z_real = disc_Z(zebra)
+            D_Z_fake = disc_Z(fake_zebra.detach())
+            Z_reals += D_Z_real.mean().item()
+            Z_fakes += D_Z_fake.mean().item()
             D_Z_real_loss = mse(D_Z_real, torch.ones_like(D_Z_real))
             D_Z_fake_loss = mse(D_Z_fake, torch.zeros_like(D_Z_fake))
             D_Z_loss = D_Z_real_loss + D_Z_fake_loss
 
-            # put it togethor
+            # Average discriminator loss
             D_loss = (D_H_loss + D_Z_loss) / 2
 
+        # Backprop and update discriminators
         opt_disc.zero_grad()
         d_scaler.scale(D_loss).backward()
         d_scaler.step(opt_disc)
         d_scaler.update()
 
-        # Train Generators H and Z
+        # Train Generators for both domains
         with torch.cuda.amp.autocast():
-            # adversarial loss for both generators
-            D_H_fake = disc_H(fake_image)
-            D_Z_fake = disc_Z(fake_amime)
+            # Adversarial losses to fool discriminators
+            D_H_fake = disc_H(fake_horse)
+            D_Z_fake = disc_Z(fake_zebra)
             loss_G_H = mse(D_H_fake, torch.ones_like(D_H_fake))
             loss_G_Z = mse(D_Z_fake, torch.ones_like(D_Z_fake))
 
-            # cycle loss
-            cycle_zebra = gen_Z(fake_image)
-            cycle_horse = gen_H(fake_amime)
-            cycle_zebra_loss = l1(anime, cycle_zebra)
-            cycle_horse_loss = l1(image, cycle_horse)
+            # Cycle consistency losses
+            cycle_zebra = gen_Z(fake_horse)
+            cycle_horse = gen_H(fake_zebra)
+            cycle_zebra_loss = l1(zebra, cycle_zebra)
+            cycle_horse_loss = l1(horse, cycle_horse)
 
-            # identity loss (remove these for efficiency if you set lambda_identity=0)
-            identity_zebra = gen_Z(anime)
-            identity_horse = gen_H(image)
-            identity_zebra_loss = l1(anime, identity_zebra)
-            identity_horse_loss = l1(image, identity_horse)
+            # Identity losses (optional, lambda=0.0 disables them)
+            identity_zebra = gen_Z(zebra)
+            identity_horse = gen_H(horse)
+            identity_zebra_loss = l1(zebra, identity_zebra)
+            identity_horse_loss = l1(horse, identity_horse)
 
-            # add all togethor
+            # Total generator loss (with lambdas for cycle=10, identity=0.0)
             G_loss = (
-                loss_G_Z
-                + loss_G_H
-                + cycle_zebra_loss * 10
-                + cycle_horse_loss * 10
-                + identity_horse_loss * 0.0
-                + identity_zebra_loss * 0.0
+                    loss_G_H
+                    + loss_G_Z
+                    + cycle_horse_loss * 10.0
+                    + cycle_zebra_loss * 10.0
+                    + identity_horse_loss * 0.0
+                    + identity_zebra_loss * 0.0
             )
 
+        # Backprop and update generators
         opt_gen.zero_grad()
         g_scaler.scale(G_loss).backward()
         g_scaler.step(opt_gen)
         g_scaler.update()
 
+        # Save sample images periodically
         if idx % 200 == 0:
-            save_image(fake_image * 0.5 + 0.5, f"saved_images/horse_{idx}.png")
-            save_image(fake_amime * 0.5 + 0.5, f"saved_images/zebra_{idx}.png")
+            save_image(fake_horse * 0.5 + 0.5, f"saved_images/horse_{idx}.png")
+            save_image(fake_zebra * 0.5 + 0.5, f"saved_images/zebra_{idx}.png")
 
-        loop.set_postfix(H_real=H_reals / (idx + 1), H_fake=H_fakes / (idx + 1))
+        # Update progress bar with average discriminator outputs
+        loop.set_postfix(
+            H_real=H_reals / (idx + 1),
+            H_fake=H_fakes / (idx + 1),
+            Z_real=Z_reals / (idx + 1),
+            Z_fake=Z_fakes / (idx + 1)
+        )
+
 
 def main():
     disc_H = Discriminator().to('cuda')
@@ -165,7 +188,7 @@ def main():
 
     dataset = AnimeDataset(
         root_horse="config.TRAIN_DIR" + "/horses",
-        root_zebra="config.TRAIN_DIR "+ "/zebras",
+        root_zebra="config.TRAIN_DIR " + "/zebras",
         transform=transforms,
     )
     val_dataset = AnimeDataset(
@@ -208,6 +231,7 @@ def main():
         save_checkpoint(gen_Z, opt_gen, filename="genz.pth.tar")
         save_checkpoint(disc_H, opt_disc, filename="critich.pth.tar")
         save_checkpoint(disc_Z, opt_disc, filename="criticz.pth.tar")
+
 
 if __name__ == "__main__":
     main()

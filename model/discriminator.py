@@ -11,27 +11,25 @@ class Discriminator(nn.Module):
 
         self.layers = nn.Sequential(
             nn.Conv2d(3, 64, kernel_size=3, padding=1),
-
+            nn.ReLU(),
             ResidualBlock(64, 64),
             ResidualBlock(64, 64),
-
+            nn.ReLU(),
             nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=0),
-
+            nn.ReLU(),
             ResidualBlock(64, 128),
             ResidualBlock(128, 128),
-
+            nn.ReLU(),
             nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=0),
-
+            nn.ReLU(),
             ResidualBlock(128, 256),
             ResidualBlock(256, 256),
-
+            nn.ReLU(),
             nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=0),
-
+            nn.ReLU(),
             ResidualBlock(256, 256),
             ResidualBlock(256, 256),
             ResidualBlock(256, 256),
-
-            AttentionBlock(256,),
 
             ResidualBlock(256, 256),
 
@@ -57,10 +55,3 @@ class Discriminator(nn.Module):
 
             x = layers(x)
         return torch.sigmoid(x)
-
-# def test():
-#     x = torch.randn((5, 3, 128, 128))
-#     model = Discriminator()
-#     summary(model, (5, 3, 128, 128))
-#     out = model(x)
-#     print(out.shape)
